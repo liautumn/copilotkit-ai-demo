@@ -1,85 +1,66 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { CopilotChatConfigurationProvider, CopilotKitProvider } from '@copilotkit/vue/v2'
+import { demoLinks } from '@/data/demoCatalog'
+
+const runtimeUrl = import.meta.env.VITE_COPILOT_RUNTIME_URL ?? '/api/copilotkit'
+const chatLabels = {
+  chatInputPlaceholder: '输入消息...',
+  chatInputToolbarStartTranscribeButtonLabel: '语音转写',
+  chatInputToolbarCancelTranscribeButtonLabel: '取消',
+  chatInputToolbarFinishTranscribeButtonLabel: '完成',
+  chatInputToolbarAddButtonLabel: '添加图片或文件',
+  chatInputToolbarToolsButtonLabel: '工具',
+  assistantMessageToolbarCopyCodeLabel: '复制',
+  assistantMessageToolbarCopyCodeCopiedLabel: '已复制',
+  assistantMessageToolbarCopyMessageLabel: '复制',
+  assistantMessageToolbarThumbsUpLabel: '回复有帮助',
+  assistantMessageToolbarThumbsDownLabel: '回复无帮助',
+  assistantMessageToolbarReadAloudLabel: '朗读',
+  assistantMessageToolbarRegenerateLabel: '重新生成',
+  userMessageToolbarCopyMessageLabel: '复制',
+  userMessageToolbarEditMessageLabel: '编辑',
+  chatDisclaimerText: 'AI 可能出错，请核对重要信息。',
+  chatToggleOpenLabel: '打开聊天',
+  chatToggleCloseLabel: '关闭聊天',
+  modalHeaderTitle: 'CopilotKit 聊天',
+  welcomeMessageText: '今天需要我帮你做什么？',
+} as Record<string, string>
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <CopilotKitProvider
+    :runtime-url="runtimeUrl"
+    :debug="{ events: false, lifecycle: false, verbose: false }"
+    :show-dev-console="false"
+  >
+    <div class="app-shell">
+      <aside class="app-nav">
+        <RouterLink class="brand" to="/">
+          <span class="brand-mark">CK</span>
+          <span>
+            <strong>CopilotKit Vue</strong>
+            <small>演示工作台</small>
+          </span>
+        </RouterLink>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+        <nav>
+          <RouterLink
+            v-for="demo in demoLinks"
+            :key="demo.slug"
+            :to="`/demos/${demo.slug}`"
+          >
+            <small>{{ demo.category }}</small>
+            <span>{{ demo.title }}</span>
+          </RouterLink>
+        </nav>
+      </aside>
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+      <main class="app-content">
+        <CopilotChatConfigurationProvider :labels="chatLabels">
+          <RouterView />
+        </CopilotChatConfigurationProvider>
+      </main>
     </div>
-  </header>
-
-  <RouterView />
+  </CopilotKitProvider>
 </template>
-
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>

@@ -1,3 +1,4 @@
+import '@copilotkit/vue/styles.css'
 import './assets/main.css'
 
 import { createApp } from 'vue'

@@ -1,42 +1,39 @@
-# copilotkit-ai-demo
+# CopilotKit Vue 中文演示
 
-This template should help get you started developing with Vue 3 in Vite.
+这是一个 Vue 3 + Vite + TypeScript 的 CopilotKit 演示项目。前端展示 CopilotKit 的聊天、侧边栏、弹窗、前端工具、工具渲染、共享状态、上下文、人工介入和调试面板；后端使用 TypeScript 启动 CopilotKit runtime，并通过 OpenAI 兼容接口连接模型服务。
 
-## Recommended IDE Setup
+## 环境配置
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+复制 `.env.example` 为 `.env`，按需填写：
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+OPENAI_API_KEY=sk-your-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_MODE=chat
+SERVER_PORT=4000
+VITE_COPILOT_RUNTIME_URL=/api/copilotkit
 ```
 
-### Compile and Hot-Reload for Development
+如果使用第三方 OpenAI 兼容代理，优先保持 `OPENAI_API_MODE=chat`，模型名需要填代理实际支持的名称。
 
-```sh
+## 本地运行
+
+```bash
+npm install
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+默认启动：
 
-```sh
+- 前端：`http://localhost:5173/`
+- 后端 runtime：`http://localhost:4000/api/copilotkit`
+- 健康检查：`http://localhost:4000/health`
+
+## 常用命令
+
+```bash
+npm run type-check
 npm run build
+npm run preview
 ```

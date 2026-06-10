@@ -14,36 +14,36 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
     <template #icon>
       <DocumentationIcon />
     </template>
-    <template #heading>Documentation</template>
+    <template #heading>文档</template>
 
-    Vue’s
-    <a href="https://vuejs.org/" target="_blank" rel="noopener">official documentation</a>
-    provides you with all information you need to get started.
+    Vue 的
+    <a href="https://vuejs.org/" target="_blank" rel="noopener">官方文档</a>
+    提供了上手所需的全部信息。
   </WelcomeItem>
 
   <WelcomeItem>
     <template #icon>
       <ToolingIcon />
     </template>
-    <template #heading>Tooling</template>
+    <template #heading>工具链</template>
 
-    This project is served and bundled with
-    <a href="https://vite.dev/guide/features.html" target="_blank" rel="noopener">Vite</a>. The
-    recommended IDE setup is
+    这个项目使用
+    <a href="https://vite.dev/guide/features.html" target="_blank" rel="noopener">Vite</a>
+    提供开发服务和构建能力。推荐的 IDE 配置是
     <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">VSCode</a>
     +
     <a href="https://github.com/vuejs/language-tools" target="_blank" rel="noopener"
       >Vue - Official</a
-    >. If you need to test your components and web pages, check out
+    >。如果需要测试组件和页面，可以使用
     <a href="https://vitest.dev/" target="_blank" rel="noopener">Vitest</a>
-    and
+    以及
     <a href="https://www.cypress.io/" target="_blank" rel="noopener">Cypress</a>
     /
     <a href="https://playwright.dev/" target="_blank" rel="noopener">Playwright</a>.
 
     <br />
 
-    More instructions are available in
+    更多说明见
     <a href="javascript:void(0)" @click="openReadmeInEditor"><code>README.md</code></a
     >.
   </WelcomeItem>
@@ -52,44 +52,45 @@ const openReadmeInEditor = () => fetch('/__open-in-editor?file=README.md')
     <template #icon>
       <EcosystemIcon />
     </template>
-    <template #heading>Ecosystem</template>
+    <template #heading>生态</template>
 
-    Get official tools and libraries for your project:
+    可以为项目选用这些官方工具和库：
     <a href="https://pinia.vuejs.org/" target="_blank" rel="noopener">Pinia</a>,
     <a href="https://router.vuejs.org/" target="_blank" rel="noopener">Vue Router</a>,
     <a href="https://test-utils.vuejs.org/" target="_blank" rel="noopener">Vue Test Utils</a>, and
-    <a href="https://github.com/vuejs/devtools" target="_blank" rel="noopener">Vue Dev Tools</a>. If
-    you need more resources, we suggest paying
+    <a href="https://github.com/vuejs/devtools" target="_blank" rel="noopener">Vue Dev Tools</a>。
+    如果还需要更多资源，可以查看
     <a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">Awesome Vue</a>
-    a visit.
+    。
   </WelcomeItem>
 
   <WelcomeItem>
     <template #icon>
       <CommunityIcon />
     </template>
-    <template #heading>Community</template>
+    <template #heading>社区</template>
 
-    Got stuck? Ask your question on
+    遇到问题时，可以在
     <a href="https://chat.vuejs.org" target="_blank" rel="noopener">Vue Land</a>
-    (our official Discord server), or
+    官方 Discord，或
     <a href="https://stackoverflow.com/questions/tagged/vue.js" target="_blank" rel="noopener"
       >StackOverflow</a
-    >. You should also follow the official
+    >
+    提问。也可以关注官方
     <a href="https://bsky.app/profile/vuejs.org" target="_blank" rel="noopener">@vuejs.org</a>
-    Bluesky account or the
+    Bluesky 账号或
     <a href="https://x.com/vuejs" target="_blank" rel="noopener">@vuejs</a>
-    X account for latest news in the Vue world.
+    X 账号，获取 Vue 生态的最新消息。
   </WelcomeItem>
 
   <WelcomeItem>
     <template #icon>
       <SupportIcon />
     </template>
-    <template #heading>Support Vue</template>
+    <template #heading>支持 Vue</template>
 
-    As an independent project, Vue relies on community backing for its sustainability. You can help
-    us by
-    <a href="https://vuejs.org/sponsor/" target="_blank" rel="noopener">becoming a sponsor</a>.
+    Vue 是一个独立项目，长期发展依赖社区支持。你可以通过
+    <a href="https://vuejs.org/sponsor/" target="_blank" rel="noopener">成为赞助者</a>
+    提供帮助。
   </WelcomeItem>
 </template>
