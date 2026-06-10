@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { CopilotChat } from '@copilotkit/vue/v2'
+import { CopilotChat, useConfigureSuggestions } from '@copilotkit/vue/v2'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
 
 const threadId = 'demo-chat'
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '介绍能力', message: '请用中文介绍这个 CopilotKit Vue 演示可以做什么' },
+    { title: '测试工具', message: '请说明哪些页面可以测试前端工具调用' },
+    { title: '查看状态', message: '解释当前聊天线程会记录哪些状态' },
+  ],
+})
 </script>
 
 <template>

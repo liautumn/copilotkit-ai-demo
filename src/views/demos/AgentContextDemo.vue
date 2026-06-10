@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { CopilotChat, useAgentContext } from '@copilotkit/vue/v2'
+import { CopilotChat, useAgentContext, useConfigureSuggestions } from '@copilotkit/vue/v2'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
 
@@ -10,6 +10,15 @@ const customer = reactive({
   plan: '企业版',
   renewalRisk: '中',
   openItems: 4,
+})
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '查看上下文', message: '你现在能读取到哪些客户上下文？' },
+    { title: '评估风险', message: '根据当前客户上下文评估续约风险' },
+    { title: '建议动作', message: '基于当前上下文给出三个下一步动作' },
+  ],
 })
 
 useAgentContext({

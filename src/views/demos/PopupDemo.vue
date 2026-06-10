@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import { CopilotPopup } from '@copilotkit/vue/v2'
+import { CopilotPopup, useConfigureSuggestions } from '@copilotkit/vue/v2'
 import DemoShell from '@/components/DemoShell.vue'
 
 const threadId = 'demo-popup'
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '解释流程', message: '请解释这个收入流程的三个时间节点' },
+    { title: '生成待办', message: '根据当前流程生成一条待办事项' },
+    { title: '请求审批', message: '发布前请先请求人工审批' },
+  ],
+})
 </script>
 
 <template>

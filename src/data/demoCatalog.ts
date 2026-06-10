@@ -36,6 +36,13 @@ export const demoLinks: DemoLink[] = [
     docsUrl: 'https://docs.copilotkit.ai/frontend-tools',
   },
   {
+    slug: 'business',
+    title: '续约流程工作台',
+    category: '业务场景',
+    summary: '测试 Agent 推进流程节点、完成流程动作，并实时更新业务统计。',
+    docsUrl: 'https://docs.copilotkit.ai/frontend-tools',
+  },
+  {
     slug: 'tool-rendering',
     title: '工具渲染',
     category: '生成式界面',

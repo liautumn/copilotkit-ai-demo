@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from 'vue'
-import { CopilotChat, useAgent, useCopilotKit } from '@copilotkit/vue/v2'
+import { CopilotChat, useAgent, useConfigureSuggestions, useCopilotKit } from '@copilotkit/vue/v2'
 import type { InterruptEvent, InterruptRenderProps } from '@copilotkit/vue/v2'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
@@ -9,6 +9,15 @@ const threadId = 'demo-interrupt'
 const { agent } = useAgent({ agentId: 'default', threadId })
 const { copilotkit } = useCopilotKit()
 const interrupt = shallowRef<InterruptEvent | null>(null)
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '请求审批', message: '发布前请请求人工审批' },
+    { title: '触发中断', message: '请触发一次 interrupt，让页面显示人工确认卡片' },
+    { title: '说明流程', message: '解释人工介入流程如何继续当前 thread' },
+  ],
+})
 
 const interruptResult = computed(() => {
   const event = interrupt.value

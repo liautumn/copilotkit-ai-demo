@@ -82,8 +82,65 @@
   padding: 2rem;
 }
 
+.global-assistant {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  width: min(1180px, 100%);
+  gap: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.25rem;
+  padding: 0.9rem;
+  backdrop-filter: blur(10px);
+}
+
+.global-assistant__status,
+.global-assistant__input,
+.global-assistant__quick {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.global-assistant__status {
+  justify-content: space-between;
+}
+
+.global-assistant__status span,
+.global-assistant p {
+  color: var(--text-muted);
+}
+
+.global-assistant p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.global-assistant__input input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0.65rem 0.8rem;
+}
+
+.global-assistant__input input::placeholder {
+  color: #64748b;
+}
+
+.global-assistant__quick {
+  flex-wrap: wrap;
+}
+
 .home-page,
-.demo-shell {
+.demo-shell,
+.workflow-page {
   width: min(1180px, 100%);
 }
 
@@ -238,6 +295,10 @@ button:disabled {
   grid-template-columns: minmax(360px, 1fr) minmax(260px, 340px);
 }
 
+.demo-grid--business {
+  grid-template-columns: minmax(360px, 0.95fr) minmax(420px, 1.1fr) minmax(260px, 0.75fr);
+}
+
 .chat-frame {
   min-height: 680px;
   overflow: hidden;
@@ -253,6 +314,169 @@ button:disabled {
 
 .panel {
   padding: 1rem;
+}
+
+.business-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.business-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.business-stats div {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.85rem;
+}
+
+.business-stats span,
+.business-stats strong {
+  display: block;
+}
+
+.business-stats span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.business-stats strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.business-stats--finance div {
+  background: #ecfdf5;
+}
+
+.business-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.business-header h2 {
+  margin-bottom: 0.35rem;
+  font-size: 1.35rem;
+}
+
+.business-risk {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+}
+
+.business-risk--低 {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.business-risk--中 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.business-risk--高 {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.workflow-track {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workflow-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 0.85rem;
+}
+
+.workflow-step h3,
+.workflow-step p {
+  margin: 0;
+}
+
+.workflow-step h3 {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.workflow-step p,
+.workflow-step small {
+  color: var(--text-muted);
+}
+
+.workflow-step span {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.18rem 0.45rem;
+}
+
+.workflow-step[data-status='已完成'] {
+  border-left-color: #16a34a;
+}
+
+.workflow-step[data-status='进行中'] {
+  border-left-color: #0f766e;
+  background: #f0fdfa;
+}
+
+.workflow-step[data-status='待处理'] {
+  border-left-color: #94a3b8;
+}
+
+.workflow-step[data-status='受阻'] {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.business-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.activity-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-list li {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--text-muted);
+  padding: 0.55rem 0.7rem;
 }
 
 .hint {
@@ -457,6 +681,93 @@ pre {
   padding: 1rem;
 }
 
+.workflow-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.workflow-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workflow-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.1fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.workflow-layout--stats {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.workflow-form,
+.workflow-side {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.workflow-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workflow-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.workflow-form label span {
+  font-size: 0.86rem;
+}
+
+.workflow-form input,
+.workflow-form select,
+.workflow-form textarea {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+}
+
+.workflow-form textarea {
+  resize: vertical;
+}
+
+.workflow-form__wide,
+.workflow-form .button-row,
+.workflow-form .details-list {
+  grid-column: 1 / -1;
+}
+
+.status-ok,
+.status-error {
+  border-radius: 8px;
+  font-weight: 800;
+  padding: 0.65rem 0.75rem;
+}
+
+.status-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -472,7 +783,10 @@ pre {
   }
 
   .demo-grid,
-  .demo-grid--chat {
+  .demo-grid--business,
+  .demo-grid--chat,
+  .workflow-layout,
+  .workflow-layout--stats {
     grid-template-columns: 1fr;
   }
 
@@ -488,7 +802,8 @@ pre {
   }
 
   .home-hero,
-  .demo-shell__header {
+  .demo-shell__header,
+  .workflow-page__header {
     display: block;
   }
 
@@ -505,4 +820,94 @@ pre {
   .metric-row {
     grid-template-columns: 1fr;
   }
+
+  .business-stats,
+  .business-columns,
+  .workflow-step,
+  .workflow-form {
+    grid-template-columns: 1fr;
+  }
+
+  .global-assistant {
+    position: static;
+  }
+
+  .global-assistant__status,
+  .global-assistant__input {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* CopilotKit ships with very soft neutral controls. Keep them readable in this app. */
+[data-copilotkit] {
+  --foreground: #172033;
+  --muted-foreground: #5b667a;
+  --background: #ffffff;
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #0f766e;
+}
+
+[data-copilotkit] button:disabled {
+  opacity: 0.82 !important;
+}
+
+[data-copilotkit] [data-slot='suggestion-pill'] {
+  border: 1px solid #b7c2d0 !important;
+  background: #eef2f7 !important;
+  color: #172033 !important;
+  box-shadow: 0 1px 2px rgba(18, 28, 45, 0.08);
+}
+
+[data-copilotkit] [data-slot='suggestion-pill']:hover:not(:disabled) {
+  border-color: #0f766e !important;
+  background: #dbeafe !important;
+  color: #0f172a !important;
+}
+
+[data-copilotkit] [data-slot='suggestion-pill']:disabled {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-shell'] {
+  border: 1px solid #cbd5e1;
+  background: #ffffff !important;
+  box-shadow:
+    0 10px 24px rgba(18, 28, 45, 0.1),
+    0 0 0 1px rgba(18, 28, 45, 0.03) !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-textarea'] {
+  color: #172033 !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-textarea']::placeholder {
+  color: #64748b !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-add'] {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-add']:hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-send'] {
+  background: #0f766e !important;
+  color: #ffffff !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-send']:disabled {
+  border: 1px solid #cbd5e1 !important;
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-copilotkit] [data-testid='copilot-chat-input-disclaimer'] {
+  color: #475569 !important;
 }

@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { CopilotChat, useRenderTool } from '@copilotkit/vue/v2'
+import { CopilotChat, useConfigureSuggestions, useRenderTool } from '@copilotkit/vue/v2'
 import { z } from 'zod'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
 import KnowledgeSearchTool from '@/components/KnowledgeSearchTool.vue'
 
 const threadId = 'demo-tool-rendering'
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '搜索知识库', message: '搜索 CopilotKit Vue 工具渲染的资料' },
+    { title: '渲染工具', message: '调用 searchKnowledgeBase 并展示工具渲染结果' },
+    { title: '解释插槽', message: '解释工具调用结果为什么可以用 Vue 组件渲染' },
+  ],
+})
 
 useRenderTool({
   name: 'searchKnowledgeBase',

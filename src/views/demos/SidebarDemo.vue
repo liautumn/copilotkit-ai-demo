@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import { CopilotSidebar } from '@copilotkit/vue/v2'
+import { CopilotSidebar, useConfigureSuggestions } from '@copilotkit/vue/v2'
 import DemoShell from '@/components/DemoShell.vue'
 
 const threadId = 'demo-sidebar'
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '总结工单', message: '请总结当前工作区里的待处理工单' },
+    { title: '评估风险', message: '根据页面指标评估当前发布风险' },
+    { title: '安排评审', message: '帮我规划下一步评审动作' },
+  ],
+})
 </script>
 
 <template>

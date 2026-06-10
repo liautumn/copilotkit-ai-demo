@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CopilotChat, useAgent, useCopilotKit, useFrontendTool } from '@copilotkit/vue/v2'
+import {
+  CopilotChat,
+  useAgent,
+  useConfigureSuggestions,
+  useCopilotKit,
+  useFrontendTool,
+} from '@copilotkit/vue/v2'
 import { z } from 'zod'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
@@ -10,6 +16,15 @@ const threadId = 'demo-programmatic-control'
 const { agent } = useAgent({ agentId: 'default', threadId })
 const { copilotkit } = useCopilotKit()
 const lastAction = ref('还没有触发编程式操作')
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '解释状态', message: '请解释这个 Vue 演示状态' },
+    { title: '推理路径', message: '请推理这个渲染路径' },
+    { title: '调用工具', message: '调用 captureProgrammaticSignal 记录一次编程式信号' },
+  ],
+})
 
 useFrontendTool({
   name: 'captureProgrammaticSignal',

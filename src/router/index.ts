@@ -11,6 +11,26 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: '/workflow/a',
+      name: 'workflow-a',
+      component: () => import('@/views/workflow/WorkflowPageA.vue'),
+    },
+    {
+      path: '/workflow/b',
+      name: 'workflow-b',
+      component: () => import('@/views/workflow/WorkflowPageB.vue'),
+    },
+    {
+      path: '/workflow/approval',
+      name: 'workflow-approval',
+      component: () => import('@/views/workflow/WorkflowApproval.vue'),
+    },
+    {
+      path: '/workflow/stats',
+      name: 'workflow-stats',
+      component: () => import('@/views/workflow/WorkflowStats.vue'),
+    },
+    {
       path: '/demos/chat',
       name: 'demo-chat',
       component: () => import('@/views/demos/ChatDemo.vue'),
@@ -29,6 +49,11 @@ const router = createRouter({
       path: '/demos/frontend-tools',
       name: 'demo-frontend-tools',
       component: () => import('@/views/demos/FrontendToolsDemo.vue'),
+    },
+    {
+      path: '/demos/business',
+      name: 'demo-business',
+      component: () => import('@/views/demos/BusinessDemo.vue'),
     },
     {
       path: '/demos/tool-rendering',

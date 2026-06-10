@@ -30,9 +30,18 @@ npm run dev
 - 后端 runtime：`http://localhost:4000/api/copilotkit`
 - 健康检查：`http://localhost:4000/health`
 
+## 局域网访问
+
+```bash
+npm run dev:host
+```
+
+启动后查看终端里的 `Network` 地址，例如 `http://192.168.x.x:5173/`。同一局域网下的手机或其他电脑访问这个地址即可。
+
 ## 常用命令
 
 ```bash
+npm run dev:host
 npm run type-check
 npm run build
 npm run preview

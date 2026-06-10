@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { CopilotChat, CopilotKitInspector } from '@copilotkit/vue/v2'
+import { CopilotChat, CopilotKitInspector, useConfigureSuggestions } from '@copilotkit/vue/v2'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
 
 const threadId = 'demo-inspector'
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '发送测试消息', message: '发送一条用于 Inspector 检查的测试消息' },
+    { title: '调用工具', message: '请调用一个可在 Inspector 中查看的工具' },
+    { title: '解释调试', message: '告诉我如何在 Inspector 里查看消息、工具和状态' },
+  ],
+})
 </script>
 
 <template>

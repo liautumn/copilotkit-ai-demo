@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { CopilotChatConfigurationProvider, CopilotKitProvider } from '@copilotkit/vue/v2'
+import GlobalWorkflowAssistant from '@/components/GlobalWorkflowAssistant.vue'
 import { demoLinks } from '@/data/demoCatalog'
 
 const runtimeUrl = import.meta.env.VITE_COPILOT_RUNTIME_URL ?? '/api/copilotkit'
@@ -45,6 +46,11 @@ const chatLabels = {
         </RouterLink>
 
         <nav>
+          <RouterLink to="/workflow/a">
+            <small>全局流程</small>
+            <span>跨页面工作流</span>
+          </RouterLink>
+
           <RouterLink
             v-for="demo in demoLinks"
             :key="demo.slug"
@@ -58,6 +64,7 @@ const chatLabels = {
 
       <main class="app-content">
         <CopilotChatConfigurationProvider :labels="chatLabels">
+          <GlobalWorkflowAssistant />
           <RouterView />
         </CopilotChatConfigurationProvider>
       </main>

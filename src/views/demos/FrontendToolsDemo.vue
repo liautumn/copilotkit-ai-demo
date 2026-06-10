@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CopilotChat, useFrontendTool } from '@copilotkit/vue/v2'
+import { CopilotChat, useConfigureSuggestions, useFrontendTool } from '@copilotkit/vue/v2'
 import { z } from 'zod'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
@@ -11,6 +11,15 @@ const currentTheme = ref('Graphite')
 const todos = ref(['检查 Vue Provider', '测试前端工具执行'])
 
 const themeClass = computed(() => `theme-preview theme-preview--${currentTheme.value.toLowerCase()}`)
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '切换主题', message: '把工作区主题切换为 Mint' },
+    { title: '添加待办', message: '添加一条“检查工具调用结果”的待办' },
+    { title: '解释工具', message: '解释你会如何调用前端工具更新页面' },
+  ],
+})
 
 useFrontendTool({
   name: 'setWorkspaceTheme',

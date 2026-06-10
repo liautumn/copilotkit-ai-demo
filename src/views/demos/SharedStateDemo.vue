@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { CopilotChat, useAgentContext, useFrontendTool } from '@copilotkit/vue/v2'
+import { CopilotChat, useAgentContext, useConfigureSuggestions, useFrontendTool } from '@copilotkit/vue/v2'
 import { z } from 'zod'
 import AgentStatePanel from '@/components/AgentStatePanel.vue'
 import DemoShell from '@/components/DemoShell.vue'
@@ -11,6 +11,15 @@ const board = reactive({
   selectedTicket: 'CK-2048',
   status: '等待评审',
   owner: 'Vue 平台',
+})
+
+useConfigureSuggestions({
+  available: 'always',
+  suggestions: [
+    { title: '同步状态', message: '读取当前 Vue 状态并同步一份 AG-UI 状态快照' },
+    { title: '更新工单', message: '把 CK-2048 的状态更新为评审中' },
+    { title: '解释看板', message: '根据页面上下文解释当前工单看板' },
+  ],
 })
 
 useAgentContext({

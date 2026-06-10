@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "run-p dev:server dev:client",
+    "dev:host": "run-p dev:server \"dev:client -- --host 0.0.0.0\"",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",
     "server": "tsx server/index.ts",

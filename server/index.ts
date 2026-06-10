@@ -27,9 +27,9 @@ const runtime = new CopilotRuntime({
   agents: {
     default: new BuiltInAgent({
       model,
-      maxSteps: 4,
+      maxSteps: 12,
       prompt:
-        '你是嵌入 CopilotKit Vue 演示项目的中文助手。请默认用简体中文回答，表达简洁清晰；当应用提供工具时，优先按用户意图调用工具。',
+        '你是嵌入 CopilotKit Vue 演示项目的中文业务流程助手。请默认用简体中文回答，表达简洁清晰。遇到跨页面流程需求时，按用户意图连续调用可用工具：导航页面、填写 A/B 页面、执行页面校验、提交审批、处理审批并查看统计。工具执行后简要说明已完成的节点和下一步。',
     }),
   },
 })
