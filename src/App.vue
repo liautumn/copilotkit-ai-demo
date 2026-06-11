@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { CopilotChatConfigurationProvider, CopilotKitProvider } from '@copilotkit/vue/v2'
-import GlobalWorkflowAssistant from '@/components/GlobalWorkflowAssistant.vue'
-import { demoLinks } from '@/data/demoCatalog'
+import SchoolAiChat from '@/components/SchoolAiChat.vue'
 
 const runtimeUrl = import.meta.env.VITE_COPILOT_RUNTIME_URL ?? '/api/copilotkit'
 const chatLabels = {
-  chatInputPlaceholder: '输入消息...',
+  chatInputPlaceholder: '输入指令，例如：新增学生张三，加入一年级一班',
   chatInputToolbarStartTranscribeButtonLabel: '语音转写',
   chatInputToolbarCancelTranscribeButtonLabel: '取消',
   chatInputToolbarFinishTranscribeButtonLabel: '完成',
@@ -21,11 +20,11 @@ const chatLabels = {
   assistantMessageToolbarRegenerateLabel: '重新生成',
   userMessageToolbarCopyMessageLabel: '复制',
   userMessageToolbarEditMessageLabel: '编辑',
-  chatDisclaimerText: 'AI 可能出错，请核对重要信息。',
+  chatDisclaimerText: 'AI 操作前请核对关键数据。',
   chatToggleOpenLabel: '打开聊天',
   chatToggleCloseLabel: '关闭聊天',
-  modalHeaderTitle: 'CopilotKit 聊天',
-  welcomeMessageText: '今天需要我帮你做什么？',
+  modalHeaderTitle: 'AI 助手',
+  welcomeMessageText: '我可以帮你管理学生、班级和班级成员。',
 } as Record<string, string>
 </script>
 
@@ -35,39 +34,35 @@ const chatLabels = {
     :debug="{ events: false, lifecycle: false, verbose: false }"
     :show-dev-console="false"
   >
-    <div class="app-shell">
-      <aside class="app-nav">
-        <RouterLink class="brand" to="/">
-          <span class="brand-mark">CK</span>
-          <span>
-            <strong>CopilotKit Vue</strong>
-            <small>演示工作台</small>
-          </span>
-        </RouterLink>
-
-        <nav>
-          <RouterLink to="/workflow/a">
-            <small>全局流程</small>
-            <span>跨页面工作流</span>
+    <CopilotChatConfigurationProvider :labels="chatLabels">
+      <div class="app-shell">
+        <aside class="app-nav">
+          <RouterLink class="brand" to="/students">
+            <span class="brand-mark">教</span>
+            <span>
+              <strong>教务管理</strong>
+              <small>学生与班级 CRUD</small>
+            </span>
           </RouterLink>
 
-          <RouterLink
-            v-for="demo in demoLinks"
-            :key="demo.slug"
-            :to="`/demos/${demo.slug}`"
-          >
-            <small>{{ demo.category }}</small>
-            <span>{{ demo.title }}</span>
-          </RouterLink>
-        </nav>
-      </aside>
+          <nav>
+            <RouterLink to="/students">
+              <small>学生</small>
+              <span>学生管理</span>
+            </RouterLink>
+            <RouterLink to="/classes">
+              <small>班级</small>
+              <span>班级管理</span>
+            </RouterLink>
+          </nav>
+        </aside>
 
-      <main class="app-content">
-        <CopilotChatConfigurationProvider :labels="chatLabels">
-          <GlobalWorkflowAssistant />
+        <main class="app-content">
           <RouterView />
-        </CopilotChatConfigurationProvider>
-      </main>
-    </div>
+        </main>
+      </div>
+
+      <SchoolAiChat />
+    </CopilotChatConfigurationProvider>
   </CopilotKitProvider>
 </template>

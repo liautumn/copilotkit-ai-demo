@@ -1,6 +1,6 @@
-# CopilotKit Vue 中文演示
+# 教务管理 AI 助手
 
-这是一个 Vue 3 + Vite + TypeScript 的 CopilotKit 演示项目。前端展示 CopilotKit 的聊天、侧边栏、弹窗、前端工具、工具渲染、共享状态、上下文、人工介入和调试面板；后端使用 TypeScript 启动 CopilotKit runtime，并通过 OpenAI 兼容接口连接模型服务。
+这是一个 Vue 3 + Vite + TypeScript 的教务管理应用。前端提供学生管理、班级管理和班级成员维护；右下角 AI 助手通过 CopilotKit 读取当前页面数据，并调用前端工具完成学生 CRUD、班级 CRUD、学生分班和页面跳转。后端使用 TypeScript 启动 CopilotKit runtime，并通过 OpenAI 兼容接口连接模型服务。
 
 ## 环境配置
 
