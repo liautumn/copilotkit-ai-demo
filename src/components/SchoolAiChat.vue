@@ -3,6 +3,7 @@ import { computed, isRef, ref, toRaw, unref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CopilotChat,
+  CopilotChatInput,
   useAgent,
   useAgentContext,
   useCopilotKit,
@@ -18,7 +19,7 @@ const { agent } = useAgent({ agentId: 'default', threadId })
 const { copilotkit } = useCopilotKit()
 
 const open = ref(false)
-const lastAction = ref('可以帮你操作学生和班级')
+const statusText = ref('可以帮你操作学生和班级')
 const runNotice = ref('')
 const canRun = computed(() => Boolean(agent.value && !agent.value.isRunning))
 const attachmentConfig = {
@@ -33,6 +34,7 @@ function showRunNotice(message: string) {
   }, 8000)
 }
 
+// CopilotKit 运行参数会经过 structuredClone，这里提前清理 Vue proxy、ref 和不可克隆对象。
 function toPlainJson<T>(value: T): T {
   const plainValue = toJsonCompatible(value)
   if (plainValue === undefined) return plainValue as T
@@ -103,6 +105,18 @@ function getSchoolSnapshot() {
   return toPlainJson(school.schoolSnapshot)
 }
 
+function classPageName(page: 'students' | 'classes') {
+  return page === 'students' ? '学生管理' : '班级管理'
+}
+
+function toolResult<T extends Record<string, unknown>>(message: string, payload: T) {
+  statusText.value = message
+  return {
+    ...payload,
+    snapshot: getSchoolSnapshot(),
+  }
+}
+
 useAgentContext({
   description:
     '教务管理系统当前数据。包含学生、班级、每个班级的学生、未分班学生。AI 可以读取这些数据并调用工具完成学生 CRUD、班级 CRUD、班级添加学生和移出学生。',
@@ -111,10 +125,6 @@ useAgentContext({
     ...getSchoolSnapshot(),
   }),
 })
-
-function setAction(message: string) {
-  lastAction.value = message
-}
 
 function formatAiError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || '未知错误')
@@ -161,6 +171,7 @@ function sanitizeAgentData(currentAgent: unknown) {
   }
 }
 
+// 当前版本的 Agent 内部可能缓存响应式数据，运行前统一转成普通 JSON，避免浏览器克隆失败。
 function patchAgentCloneInputs(currentAgent: unknown) {
   if (!currentAgent || typeof currentAgent !== 'object' || patchedAgents.has(currentAgent)) return
 
@@ -197,7 +208,7 @@ async function sendPrompt(message: string) {
     role: 'user',
     content: message,
   }))
-  setAction(`已发送：${message}`)
+  statusText.value = `已发送：${message}`
   try {
     await copilotkit.value.runAgent({
       agent: agent.value,
@@ -234,7 +245,7 @@ useFrontendTool({
   description: '读取当前学生和班级管理数据。返回学生、班级、班级成员和未分班学生。',
   parameters: z.object({}),
   handler: async () => {
-    setAction('已读取教务数据')
+    statusText.value = '已读取教务数据'
     return getSchoolSnapshot()
   },
 })
@@ -248,7 +259,7 @@ useFrontendTool({
   handler: async ({ page }) => {
     const path = page === 'students' ? '/students' : '/classes'
     await router.push(path)
-    setAction(`已跳转到${page === 'students' ? '学生管理' : '班级管理'}`)
+    statusText.value = `已跳转到${classPageName(page)}`
     return { page, path }
   },
 })
@@ -266,8 +277,7 @@ useFrontendTool({
   }),
   handler: async (input) => {
     const student = school.createStudent({ ...input, classId: input.classId ?? '' })
-    setAction(`已新增学生：${student.name}`)
-    return { student: toPlainJson(student), snapshot: getSchoolSnapshot() }
+    return toolResult(`已新增学生：${student.name}`, { student: toPlainJson(student) })
   },
 })
 
@@ -285,8 +295,9 @@ useFrontendTool({
   }),
   handler: async ({ id, ...input }) => {
     const student = school.updateStudent(id, input)
-    setAction(student ? `已更新学生：${student.name}` : '未找到学生')
-    return { student: toPlainJson(student), snapshot: getSchoolSnapshot() }
+    return toolResult(student ? `已更新学生：${student.name}` : '未找到学生', {
+      student: toPlainJson(student),
+    })
   },
 })
 
@@ -298,8 +309,9 @@ useFrontendTool({
   }),
   handler: async ({ id }) => {
     const student = school.deleteStudent(id)
-    setAction(student ? `已删除学生：${student.name}` : '未找到学生')
-    return { student: toPlainJson(student), snapshot: getSchoolSnapshot() }
+    return toolResult(student ? `已删除学生：${student.name}` : '未找到学生', {
+      student: toPlainJson(student),
+    })
   },
 })
 
@@ -314,8 +326,7 @@ useFrontendTool({
   }),
   handler: async (input) => {
     const schoolClass = school.createClass(input)
-    setAction(`已新增班级：${schoolClass.name}`)
-    return { class: toPlainJson(schoolClass), snapshot: getSchoolSnapshot() }
+    return toolResult(`已新增班级：${schoolClass.name}`, { class: toPlainJson(schoolClass) })
   },
 })
 
@@ -331,8 +342,9 @@ useFrontendTool({
   }),
   handler: async ({ id, ...input }) => {
     const schoolClass = school.updateClass(id, input)
-    setAction(schoolClass ? `已更新班级：${schoolClass.name}` : '未找到班级')
-    return { class: toPlainJson(schoolClass), snapshot: getSchoolSnapshot() }
+    return toolResult(schoolClass ? `已更新班级：${schoolClass.name}` : '未找到班级', {
+      class: toPlainJson(schoolClass),
+    })
   },
 })
 
@@ -344,8 +356,9 @@ useFrontendTool({
   }),
   handler: async ({ id }) => {
     const schoolClass = school.deleteClass(id)
-    setAction(schoolClass ? `已删除班级：${schoolClass.name}` : '未找到班级')
-    return { class: toPlainJson(schoolClass), snapshot: getSchoolSnapshot() }
+    return toolResult(schoolClass ? `已删除班级：${schoolClass.name}` : '未找到班级', {
+      class: toPlainJson(schoolClass),
+    })
   },
 })
 
@@ -358,8 +371,10 @@ useFrontendTool({
   }),
   handler: async ({ studentId, classId }) => {
     const result = school.assignStudentToClass(studentId, classId)
-    setAction(result ? `已把 ${result.student.name} 加入 ${result.class.name}` : '学生或班级不存在')
-    return { result: toPlainJson(result), snapshot: getSchoolSnapshot() }
+    return toolResult(
+      result ? `已把 ${result.student.name} 加入 ${result.class.name}` : '学生或班级不存在',
+      { result: toPlainJson(result) },
+    )
   },
 })
 
@@ -371,8 +386,9 @@ useFrontendTool({
   }),
   handler: async ({ studentId }) => {
     const student = school.removeStudentFromClass(studentId)
-    setAction(student ? `已把 ${student.name} 移出班级` : '未找到学生')
-    return { student: toPlainJson(student), snapshot: getSchoolSnapshot() }
+    return toolResult(student ? `已把 ${student.name} 移出班级` : '未找到学生', {
+      student: toPlainJson(student),
+    })
   },
 })
 </script>
@@ -380,9 +396,9 @@ useFrontendTool({
 <template>
   <div v-if="open" class="ai-chat-window">
     <header class="ai-chat-window__header">
-      <div>
+      <div class="ai-chat-window__title">
         <strong>AI 教务助手</strong>
-        <span>{{ agent?.isRunning ? '正在执行...' : lastAction }}</span>
+        <span>{{ agent?.isRunning ? '正在执行...' : statusText }}</span>
       </div>
       <button class="button-secondary" @click="open = false">收起</button>
     </header>
@@ -420,7 +436,36 @@ useFrontendTool({
         :attachments="attachmentConfig"
         :auto-scroll="'pin-to-bottom'"
         :on-error="handleChatError"
-      />
+      >
+        <template #input="inputProps">
+          <CopilotChatInput
+            :model-value="inputProps.modelValue"
+            :is-running="inputProps.isRunning"
+            :mode="inputProps.inputMode"
+            :tools-menu="inputProps.inputToolsMenu"
+            positioning="static"
+            :show-disclaimer="true"
+            :bottom-anchored="true"
+            @update:model-value="inputProps.onUpdateModelValue"
+            @submit-message="inputProps.onSubmitMessage"
+            @stop="inputProps.onStop?.()"
+            @add-file="inputProps.onAddFile"
+          >
+            <template #add-menu-button="{ disabled, labels }">
+              <button
+                type="button"
+                data-testid="copilot-chat-input-add"
+                :aria-label="labels.chatInputToolbarAddButtonLabel"
+                :disabled="disabled"
+                class="ai-chat-window__upload-button"
+                @click.stop="inputProps.onAddFile"
+              >
+                +
+              </button>
+            </template>
+          </CopilotChatInput>
+        </template>
+      </CopilotChat>
     </div>
   </div>
 
@@ -428,3 +473,155 @@ useFrontendTool({
     AI
   </button>
 </template>
+
+<style scoped>
+.ai-chat-window {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  width: min(520px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  border: 1px solid #c8d4e4;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 26px 80px rgba(18, 28, 45, 0.28);
+}
+
+.ai-chat-window__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #f8fbff 0%, #f2f6fb 100%);
+  padding: 0.9rem 1rem;
+}
+
+.ai-chat-window__title {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.ai-chat-window__title strong,
+.ai-chat-window__title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-chat-window__title span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.ai-chat-window__header .button-secondary {
+  min-width: 70px;
+  flex: 0 0 auto;
+}
+
+.ai-chat-window__quick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  padding: 0.65rem 1rem;
+}
+
+.ai-chat-window__quick .button-secondary {
+  min-width: 0;
+  min-height: 32px;
+  border-color: #cde3df;
+  background: #f0fdfa;
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  padding: 0.35rem 0.55rem;
+}
+
+.ai-chat-window__quick .button-secondary:hover {
+  background: #ccfbf1;
+}
+
+.ai-chat-window__notice {
+  margin: 0;
+  border-bottom: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #9f1239;
+  font-size: 0.84rem;
+  padding: 0.55rem 1rem;
+}
+
+.ai-chat-window__body {
+  height: min(620px, calc(100vh - 220px));
+  min-height: 440px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.ai-chat-window__body > * {
+  height: 100%;
+}
+
+.ai-chat-window :deep([data-copilotkit]) {
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+}
+
+.ai-chat-window__upload-button {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: 1px solid var(--accent) !important;
+  border-radius: 12px;
+  background: #ecfdf5 !important;
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(15, 118, 110, 0.18);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.ai-chat-window__upload-button:hover {
+  background: #d1fae5 !important;
+  color: var(--accent-strong);
+}
+
+.ai-chat-launcher {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 80;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 18px 44px rgba(18, 28, 45, 0.24);
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  .ai-chat-window {
+    right: 1rem;
+    bottom: 1rem;
+    width: calc(100vw - 2rem);
+  }
+
+  .ai-chat-window__header {
+    align-items: flex-start;
+  }
+
+  .ai-chat-window__quick {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-chat-window__body,
+  .ai-chat-window__body > * {
+    height: 480px;
+    min-height: 480px;
+  }
+}
+</style>
