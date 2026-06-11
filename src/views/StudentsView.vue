@@ -6,6 +6,8 @@ const school = useSchoolStore()
 const editingId = ref('')
 const isFormOpen = ref(false)
 const keyword = ref('')
+const importInput = ref<HTMLInputElement | null>(null)
+const importMessage = ref('')
 const form = reactive({
   studentNo: '',
   name: '',
@@ -27,6 +29,27 @@ const filteredStudents = computed(() => {
 })
 
 const formTitle = computed(() => (editingId.value ? '编辑学生' : '新增学生'))
+
+const excelHeaders = ['学号', '姓名', '性别', '年龄', '电话', '班级']
+
+function cell(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key]
+    if (value !== undefined && value !== null) return String(value).trim()
+  }
+  return ''
+}
+
+function resolveClassId(value: string) {
+  if (!value || value === '未分班') return ''
+  return school.classes.find((item) => item.id === value || item.name === value)?.id ?? ''
+}
+
+function normalizeGender(value: string): Gender | null {
+  if (value === '男' || value.toLowerCase() === 'male') return '男'
+  if (value === '女' || value.toLowerCase() === 'female') return '女'
+  return null
+}
 
 function resetForm() {
   editingId.value = ''
@@ -80,6 +103,82 @@ function deleteStudent(id: string) {
   school.deleteStudent(id)
   if (editingId.value === id) closeForm()
 }
+
+async function loadXlsx() {
+  return await import('xlsx')
+}
+
+async function exportStudents() {
+  const XLSX = await loadXlsx()
+  const rows = school.students.map((student) => [
+    student.studentNo,
+    student.name,
+    student.gender,
+    student.age,
+    student.phone,
+    school.getClassName(student.classId),
+  ])
+  const sheet = XLSX.utils.aoa_to_sheet([excelHeaders, ...rows])
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, '学生')
+  XLSX.writeFile(workbook, `学生名单-${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
+function openImportFile() {
+  importInput.value?.click()
+}
+
+async function importStudents(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  try {
+    const XLSX = await loadXlsx()
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+    const firstSheetName = workbook.SheetNames[0]
+    const firstSheet = firstSheetName ? workbook.Sheets[firstSheetName] : null
+    if (!firstSheet) {
+      importMessage.value = '导入失败：Excel 中没有可读取的工作表。'
+      return
+    }
+
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: '' })
+    let created = 0
+    let updated = 0
+    let skipped = 0
+
+    for (const row of rows) {
+      const studentNo = cell(row, ['学号', 'studentNo', 'Student No'])
+      const name = cell(row, ['姓名', 'name', 'Name'])
+      const gender = normalizeGender(cell(row, ['性别', 'gender', 'Gender']))
+      const age = Number(cell(row, ['年龄', 'age', 'Age']))
+      const phone = cell(row, ['电话', 'phone', 'Phone'])
+      const classId = resolveClassId(cell(row, ['班级', 'className', 'classId', 'Class']))
+
+      if (!studentNo || !name || !gender || !Number.isFinite(age) || age < 1 || !phone) {
+        skipped += 1
+        continue
+      }
+
+      const existing = school.students.find((student) => student.studentNo === studentNo)
+      const payload = { studentNo, name, gender, age, phone, classId }
+      if (existing) {
+        school.updateStudent(existing.id, payload)
+        updated += 1
+      } else {
+        school.createStudent(payload)
+        created += 1
+      }
+    }
+
+    importMessage.value = `导入完成：新增 ${created} 条，更新 ${updated} 条，跳过 ${skipped} 条。`
+  } catch (error) {
+    importMessage.value = `导入失败：${error instanceof Error ? error.message : '文件格式无法解析'}`
+  } finally {
+    input.value = ''
+  }
+}
 </script>
 
 <template>
@@ -92,7 +191,10 @@ function deleteStudent(id: string) {
       </div>
       <div class="button-row">
         <button @click="openCreateStudent">新增学生</button>
+        <button class="button-secondary" @click="openImportFile">导入 Excel</button>
+        <button class="button-secondary" @click="exportStudents">导出 Excel</button>
         <button class="button-secondary" @click="school.resetSchoolData">重置数据</button>
+        <input ref="importInput" class="file-input" type="file" accept=".xlsx,.xls" @change="importStudents" />
       </div>
     </header>
 
@@ -117,6 +219,7 @@ function deleteStudent(id: string) {
           <h2>学生列表</h2>
           <input v-model="keyword" class="search-input" placeholder="搜索学号、姓名、电话、班级" />
         </div>
+        <p v-if="importMessage" class="inline-notice">{{ importMessage }}</p>
 
         <div class="data-table">
           <table>
