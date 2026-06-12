@@ -85,7 +85,7 @@ function assignStudent() {
         <h1>班级管理</h1>
         <p>维护班级信息，并把已有学生添加到指定班级。</p>
       </div>
-      <button @click="openCreateClass">新增班级</button>
+      <el-button type="primary" @click="openCreateClass">新增班级</el-button>
     </header>
 
     <div class="stats-grid">
@@ -107,11 +107,14 @@ function assignStudent() {
       <section class="panel table-panel">
         <div class="table-toolbar">
           <h2>班级列表</h2>
-          <select v-model="selectedClassId" class="search-input">
-            <option v-for="schoolClass in school.classes" :key="schoolClass.id" :value="schoolClass.id">
-              {{ schoolClass.name }}
-            </option>
-          </select>
+          <el-select v-model="selectedClassId" placeholder="选择班级" style="max-width: 260px">
+            <el-option
+              v-for="schoolClass in school.classes"
+              :key="schoolClass.id"
+              :label="schoolClass.name"
+              :value="schoolClass.id"
+            />
+          </el-select>
         </div>
 
         <div class="class-grid">
@@ -129,8 +132,8 @@ function assignStudent() {
               <span>学生：{{ school.getStudentsByClass(schoolClass.id).length }} 人</span>
             </div>
             <div class="row-actions">
-              <button class="button-secondary" @click.stop="editClass(schoolClass)">编辑</button>
-              <button class="button-danger" @click.stop="deleteClass(schoolClass.id)">删除</button>
+              <el-button size="small" @click.stop="editClass(schoolClass)">编辑</el-button>
+              <el-button size="small" type="danger" @click.stop="deleteClass(schoolClass.id)">删除</el-button>
             </div>
           </article>
         </div>
@@ -141,80 +144,106 @@ function assignStudent() {
               <h2>{{ selectedClass.name }}学生</h2>
               <p>{{ selectedClass.grade }} · {{ selectedClass.room }}</p>
             </div>
-            <form class="inline-form" @submit.prevent="assignStudent">
-              <select v-model="addStudentId">
-                <option value="">选择学生</option>
-                <option v-for="student in availableStudents" :key="student.id" :value="student.id">
-                  {{ student.name }} · {{ student.studentNo }} · {{ school.getClassName(student.classId) }}
-                </option>
-              </select>
-              <button type="submit" :disabled="!addStudentId">添加学生</button>
-            </form>
+            <div class="inline-form">
+              <el-select v-model="addStudentId" clearable placeholder="选择学生" style="min-width: 260px">
+                <el-option
+                  v-for="student in availableStudents"
+                  :key="student.id"
+                  :label="`${student.name} · ${student.studentNo} · ${school.getClassName(student.classId)}`"
+                  :value="student.id"
+                />
+              </el-select>
+              <el-button type="primary" :disabled="!addStudentId" @click="assignStudent">添加学生</el-button>
+            </div>
           </div>
 
-          <div class="data-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>学号</th>
-                  <th>姓名</th>
-                  <th>性别</th>
-                  <th>年龄</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="student in selectedClassStudents" :key="student.id">
-                  <td>{{ student.studentNo }}</td>
-                  <td>{{ student.name }}</td>
-                  <td>{{ student.gender }}</td>
-                  <td>{{ student.age }}</td>
-                  <td>
-                    <button class="button-secondary" @click="school.removeStudentFromClass(student.id)">
-                      移出班级
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="selectedClassStudents.length === 0">
-                  <td colspan="5" class="empty-cell">这个班级还没有学生</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <el-table :data="selectedClassStudents" border stripe empty-text="这个班级还没有学生">
+            <el-table-column prop="studentNo" label="学号" min-width="120" />
+            <el-table-column prop="name" label="姓名" min-width="100" />
+            <el-table-column prop="gender" label="性别" width="80" />
+            <el-table-column prop="age" label="年龄" width="80" />
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button size="small" @click="school.removeStudentFromClass(row.id)">移出班级</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </section>
       </section>
     </div>
 
-    <div v-if="isFormOpen" class="modal-backdrop" role="presentation" @click.self="closeForm">
-      <section class="modal" role="dialog" aria-modal="true" :aria-label="formTitle">
-        <header class="modal__header">
-          <h2>{{ formTitle }}</h2>
-          <button type="button" class="button-secondary" @click="closeForm">关闭</button>
-        </header>
-
-        <form class="form-panel" @submit.prevent="submitClass">
-          <label>
-            <span>班级名称</span>
-            <input v-model="form.name" required placeholder="例如：一年级三班" />
-          </label>
-          <label>
-            <span>年级</span>
-            <input v-model="form.grade" required placeholder="例如：一年级" />
-          </label>
-          <label>
-            <span>班主任</span>
-            <input v-model="form.headTeacher" required placeholder="班主任姓名" />
-          </label>
-          <label>
-            <span>教室</span>
-            <input v-model="form.room" required placeholder="例如：A103" />
-          </label>
-          <div class="button-row modal__actions">
-            <button type="submit">{{ editingId ? '保存班级' : '新增班级' }}</button>
-            <button type="button" class="button-secondary" @click="closeForm">取消</button>
-          </div>
-        </form>
-      </section>
-    </div>
+    <el-dialog v-model="isFormOpen" :title="formTitle" width="520px" @closed="resetForm">
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="班级名称" required>
+          <el-input v-model="form.name" placeholder="例如：一年级三班" />
+        </el-form-item>
+        <el-form-item label="年级" required>
+          <el-input v-model="form.grade" placeholder="例如：一年级" />
+        </el-form-item>
+        <el-form-item label="班主任" required>
+          <el-input v-model="form.headTeacher" placeholder="班主任姓名" />
+        </el-form-item>
+        <el-form-item label="教室" required>
+          <el-input v-model="form.room" placeholder="例如：A103" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="closeForm">取消</el-button>
+        <el-button type="primary" @click="submitClass">
+          {{ editingId ? '保存班级' : '新增班级' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
+
+<style scoped>
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.class-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  padding: 1rem;
+}
+
+.class-card--active {
+  border-color: var(--accent);
+  background: #ecfdf5;
+}
+
+.class-card > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.class-card strong {
+  font-size: 1rem;
+}
+
+.class-card span {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.member-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+</style>

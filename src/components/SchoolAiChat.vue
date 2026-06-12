@@ -1,31 +1,94 @@
 <script setup lang="ts">
-import { computed, isRef, ref, toRaw, unref, watch } from 'vue'
+import { computed, ref, toRaw, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CopilotChat,
-  CopilotChatInput,
   useAgent,
   useAgentContext,
   useCopilotKit,
   useFrontendTool,
 } from '@copilotkit/vue/v2'
 import { z } from 'zod'
-import { useSchoolStore } from '@/stores/school'
+import { useSchoolStore, type SchoolClass, type Student } from '@/stores/school'
 
-const threadId = 'school-ai-chat'
+const threadId = 'school-ai-chat-v2'
 const router = useRouter()
 const school = useSchoolStore()
 const { agent } = useAgent({ agentId: 'default', threadId })
 const { copilotkit } = useCopilotKit()
+type CurrentAgent = NonNullable<typeof agent.value>
 
 const open = ref(false)
 const statusText = ref('可以帮你操作学生和班级')
 const runNotice = ref('')
 const canRun = computed(() => Boolean(agent.value && !agent.value.isRunning))
+const patchedAgents = new WeakSet<object>()
 const attachmentConfig = {
   enabled: true,
+  accept: '.pdf,.txt,.md,.json,image/*',
+  maxSize: 10 * 1024 * 1024,
+  onUpload: async (file: File) => {
+    const base64 = await readFileAsBase64(file)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(message || '文件上传失败')
+    }
+
+    const data = await response.json() as {
+      url: string
+      key: string
+      originalName: string
+      mimeType: string
+      size: number
+    }
+
+    return {
+      type: 'data' as const,
+      value: base64,
+      mimeType: data.mimeType || file.type,
+      metadata: {
+        url: data.url,
+        key: data.key,
+        originalName: data.originalName || file.name,
+        size: data.size || file.size,
+      },
+    }
+  },
+  onUploadFailed: (error: { message?: string }) => {
+    console.error('上传失败：', error.message)
+  },
 }
-const patchedAgents = new WeakSet<object>()
+
+function readFileAsBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== 'string') {
+        reject(new Error('文件读取失败'))
+        return
+      }
+
+      const base64 = result.split(',')[1]
+      if (!base64) {
+        reject(new Error('文件读取失败'))
+        return
+      }
+
+      resolve(base64)
+    }
+    reader.onerror = () => reject(new Error('文件读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
 
 function showRunNotice(message: string) {
   runNotice.value = message
@@ -34,75 +97,58 @@ function showRunNotice(message: string) {
   }, 8000)
 }
 
-// CopilotKit 运行参数会经过 structuredClone，这里提前清理 Vue proxy、ref 和不可克隆对象。
-function toPlainJson<T>(value: T): T {
-  const plainValue = toJsonCompatible(value)
-  if (plainValue === undefined) return plainValue as T
-  return JSON.parse(JSON.stringify(plainValue)) as T
+function studentData(student: Student | null | undefined) {
+  if (!student) return null
+  return {
+    id: student.id,
+    studentNo: student.studentNo,
+    name: student.name,
+    gender: student.gender,
+    age: student.age,
+    phone: student.phone,
+    classId: student.classId,
+    className: school.getClassName(student.classId),
+  }
 }
 
-function toJsonCompatible(value: unknown, seen = new WeakSet<object>()): unknown {
-  if (isRef(value)) return toJsonCompatible(unref(value), seen)
-  if (value === null) return null
-  if (value === undefined) return undefined
+function classData(schoolClass: SchoolClass | null | undefined) {
+  if (!schoolClass) return null
+  const students = school.getStudentsByClass(schoolClass.id)
+  return {
+    id: schoolClass.id,
+    name: schoolClass.name,
+    grade: schoolClass.grade,
+    headTeacher: schoolClass.headTeacher,
+    room: schoolClass.room,
+    studentCount: students.length,
+    students: students.map((student) => ({
+      id: student.id,
+      name: student.name,
+      studentNo: student.studentNo,
+    })),
+  }
+}
 
-  const valueType = typeof value
-  if (valueType === 'string' || valueType === 'boolean') return value
-  if (valueType === 'number') return Number.isFinite(value) ? value : null
-  if (valueType === 'bigint') return value.toString()
-  if (valueType === 'function' || valueType === 'symbol') return undefined
-
-  const rawValue = toRaw(value as object) as object
-  if (seen.has(rawValue)) return '[Circular]'
-  seen.add(rawValue)
-
-  if (rawValue instanceof Date) return rawValue.toISOString()
-  if (rawValue instanceof Error) {
-    return {
-      name: rawValue.name,
-      message: rawValue.message,
-    }
+function assignmentData(result: { student: Student, class: SchoolClass } | null) {
+  if (!result) return null
+  return {
+    student: studentData(result.student),
+    class: classData(result.class),
   }
-  if (typeof File !== 'undefined' && rawValue instanceof File) {
-    return {
-      name: rawValue.name,
-      size: rawValue.size,
-      type: rawValue.type,
-      lastModified: rawValue.lastModified,
-    }
-  }
-  if (typeof Blob !== 'undefined' && rawValue instanceof Blob) {
-    return {
-      size: rawValue.size,
-      type: rawValue.type,
-    }
-  }
-  if (rawValue instanceof Map) {
-    return Object.fromEntries(
-      Array.from(rawValue.entries())
-        .map(([key, entryValue]) => [String(key), toJsonCompatible(entryValue, seen)])
-        .filter(([, entryValue]) => entryValue !== undefined),
-    )
-  }
-  if (rawValue instanceof Set) {
-    return Array.from(rawValue.values())
-      .map((entryValue) => toJsonCompatible(entryValue, seen))
-      .filter((entryValue) => entryValue !== undefined)
-  }
-  if (Array.isArray(rawValue)) {
-    return rawValue.map((entryValue) => toJsonCompatible(entryValue, seen) ?? null)
-  }
-
-  const output: Record<string, unknown> = {}
-  for (const [key, entryValue] of Object.entries(rawValue)) {
-    const plainEntry = toJsonCompatible(entryValue, seen)
-    if (plainEntry !== undefined) output[key] = plainEntry
-  }
-  return output
 }
 
 function getSchoolSnapshot() {
-  return toPlainJson(school.schoolSnapshot)
+  return {
+    students: school.students.map((student) => studentData(student)),
+    classes: school.classes.map((schoolClass) => classData(schoolClass)),
+    unassignedStudents: school.students
+      .filter((student) => !student.classId)
+      .map((student) => ({
+        id: student.id,
+        name: student.name,
+        studentNo: student.studentNo,
+      })),
+  }
 }
 
 function classPageName(page: 'students' | 'classes') {
@@ -128,9 +174,6 @@ useAgentContext({
 
 function formatAiError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || '未知错误')
-  if (/structuredClone|could not be cloned|could not be clone/i.test(message)) {
-    return `AI 处理失败：前端传给 CopilotKit 的数据里还有不可克隆对象。原始错误：${message}`
-  }
   return `AI 处理失败：${message}`
 }
 
@@ -138,76 +181,48 @@ function handleChatError(event: { error: Error }) {
   showRunNotice(formatAiError(event.error))
 }
 
-function sanitizeRunParameters(parameters: unknown) {
-  if (!parameters || typeof parameters !== 'object') return parameters
-  const sanitized = { ...(parameters as Record<string, unknown>) }
-  for (const key of ['tools', 'context', 'forwardedProps'] as const) {
-    if (key in sanitized) sanitized[key] = toPlainJson(sanitized[key])
-  }
-  return sanitized
+function toPlainClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(toRaw(value))) as T
 }
 
-function sanitizeAgentData(currentAgent: unknown) {
-  if (!currentAgent || typeof currentAgent !== 'object') return
-  const mutableAgent = currentAgent as {
-    messages?: unknown
-    state?: unknown
-    setMessages?: (messages: unknown[]) => void
-    setState?: (state: unknown) => void
-  }
-  const plainMessages = toPlainJson(mutableAgent.messages ?? []) as unknown[]
-  const plainState = toPlainJson(mutableAgent.state ?? {})
+function patchAgentMessages(currentAgent: CurrentAgent) {
+  const rawAgent = toRaw(currentAgent) as CurrentAgent & object
+  if (patchedAgents.has(rawAgent)) return
 
-  if (typeof mutableAgent.setMessages === 'function') {
-    mutableAgent.setMessages(plainMessages)
-  } else {
-    mutableAgent.messages = plainMessages
-  }
-
-  if (typeof mutableAgent.setState === 'function') {
-    mutableAgent.setState(plainState)
-  } else {
-    mutableAgent.state = plainState
-  }
+  rawAgent.setMessages(toPlainClone(rawAgent.messages))
+  const originalAddMessage = rawAgent.addMessage.bind(rawAgent)
+  rawAgent.addMessage = ((message: Parameters<CurrentAgent['addMessage']>[0]) => {
+    originalAddMessage(toPlainClone(message))
+  }) as CurrentAgent['addMessage']
+  patchedAgents.add(rawAgent)
 }
 
-// 当前版本的 Agent 内部可能缓存响应式数据，运行前统一转成普通 JSON，避免浏览器克隆失败。
-function patchAgentCloneInputs(currentAgent: unknown) {
-  if (!currentAgent || typeof currentAgent !== 'object' || patchedAgents.has(currentAgent)) return
+function findUncloneablePath(value: unknown, path = 'messages', seen = new WeakSet<object>()): string | null {
+  try {
+    structuredClone(value)
+    return null
+  } catch {
+    if (!value || typeof value !== 'object') return path
+    if (seen.has(value)) return null
+    seen.add(value)
 
-  const mutableAgent = currentAgent as {
-    runAgent?: (parameters?: unknown, subscriber?: unknown) => Promise<unknown>
-    connectAgent?: (parameters?: unknown, subscriber?: unknown) => Promise<unknown>
-  }
-  const originalRunAgent = mutableAgent.runAgent?.bind(currentAgent)
-  const originalConnectAgent = mutableAgent.connectAgent?.bind(currentAgent)
-
-  if (originalRunAgent) {
-    mutableAgent.runAgent = (parameters?: unknown, subscriber?: unknown) => {
-      sanitizeAgentData(currentAgent)
-      return originalRunAgent(sanitizeRunParameters(parameters), subscriber)
+    for (const [key, entry] of Object.entries(value)) {
+      const entryPath = findUncloneablePath(entry, `${path}.${key}`, seen)
+      if (entryPath) return entryPath
     }
-  }
 
-  if (originalConnectAgent) {
-    mutableAgent.connectAgent = (parameters?: unknown, subscriber?: unknown) => {
-      sanitizeAgentData(currentAgent)
-      return originalConnectAgent(sanitizeRunParameters(parameters), subscriber)
-    }
+    return path
   }
-
-  patchedAgents.add(currentAgent)
 }
 
 async function sendPrompt(message: string) {
   open.value = true
   if (!agent.value || agent.value.isRunning) return
-  patchAgentCloneInputs(agent.value)
-  agent.value.addMessage(toPlainJson({
+  agent.value.addMessage({
     id: crypto.randomUUID(),
     role: 'user',
     content: message,
-  }))
+  })
   statusText.value = `已发送：${message}`
   try {
     await copilotkit.value.runAgent({
@@ -223,8 +238,12 @@ watch(
   () => agent.value,
   (currentAgent, _previous, onCleanup) => {
     if (!currentAgent) return
-    patchAgentCloneInputs(currentAgent)
+    patchAgentMessages(currentAgent)
     const subscription = currentAgent.subscribe({
+      onMessagesChanged: ({ messages }) => {
+        const uncloneablePath = findUncloneablePath(messages)
+        if (uncloneablePath) console.warn('CopilotKit messages contain an uncloneable value at:', uncloneablePath)
+      },
       onRunStartedEvent: () => {
         runNotice.value = ''
       },
@@ -277,7 +296,7 @@ useFrontendTool({
   }),
   handler: async (input) => {
     const student = school.createStudent({ ...input, classId: input.classId ?? '' })
-    return toolResult(`已新增学生：${student.name}`, { student: toPlainJson(student) })
+    return toolResult(`已新增学生：${student.name}`, { student: studentData(student) })
   },
 })
 
@@ -296,7 +315,7 @@ useFrontendTool({
   handler: async ({ id, ...input }) => {
     const student = school.updateStudent(id, input)
     return toolResult(student ? `已更新学生：${student.name}` : '未找到学生', {
-      student: toPlainJson(student),
+      student: studentData(student),
     })
   },
 })
@@ -310,7 +329,7 @@ useFrontendTool({
   handler: async ({ id }) => {
     const student = school.deleteStudent(id)
     return toolResult(student ? `已删除学生：${student.name}` : '未找到学生', {
-      student: toPlainJson(student),
+      student: studentData(student),
     })
   },
 })
@@ -326,7 +345,7 @@ useFrontendTool({
   }),
   handler: async (input) => {
     const schoolClass = school.createClass(input)
-    return toolResult(`已新增班级：${schoolClass.name}`, { class: toPlainJson(schoolClass) })
+    return toolResult(`已新增班级：${schoolClass.name}`, { class: classData(schoolClass) })
   },
 })
 
@@ -343,7 +362,7 @@ useFrontendTool({
   handler: async ({ id, ...input }) => {
     const schoolClass = school.updateClass(id, input)
     return toolResult(schoolClass ? `已更新班级：${schoolClass.name}` : '未找到班级', {
-      class: toPlainJson(schoolClass),
+      class: classData(schoolClass),
     })
   },
 })
@@ -357,7 +376,7 @@ useFrontendTool({
   handler: async ({ id }) => {
     const schoolClass = school.deleteClass(id)
     return toolResult(schoolClass ? `已删除班级：${schoolClass.name}` : '未找到班级', {
-      class: toPlainJson(schoolClass),
+      class: classData(schoolClass),
     })
   },
 })
@@ -373,7 +392,7 @@ useFrontendTool({
     const result = school.assignStudentToClass(studentId, classId)
     return toolResult(
       result ? `已把 ${result.student.name} 加入 ${result.class.name}` : '学生或班级不存在',
-      { result: toPlainJson(result) },
+      { result: assignmentData(result) },
     )
   },
 })
@@ -387,7 +406,7 @@ useFrontendTool({
   handler: async ({ studentId }) => {
     const student = school.removeStudentFromClass(studentId)
     return toolResult(student ? `已把 ${student.name} 移出班级` : '未找到学生', {
-      student: toPlainJson(student),
+      student: studentData(student),
     })
   },
 })
@@ -400,78 +419,56 @@ useFrontendTool({
         <strong>AI 教务助手</strong>
         <span>{{ agent?.isRunning ? '正在执行...' : statusText }}</span>
       </div>
-      <button class="button-secondary" @click="open = false">收起</button>
+      <el-button plain @click="open = false">收起</el-button>
     </header>
 
     <div class="ai-chat-window__quick">
-      <button
-        class="button-secondary"
+      <el-button
+        plain
         :disabled="!canRun"
         @click="sendPrompt('读取当前学生和班级数据，给我一个摘要')"
       >
         读取数据
-      </button>
-      <button
-        class="button-secondary"
+      </el-button>
+      <el-button
+        plain
         :disabled="!canRun"
         @click="sendPrompt('帮我新增学生赵明，学号 2026004，男，12 岁，电话 13800000004，并加入一年级二班')"
       >
         新增学生
-      </button>
-      <button
-        class="button-secondary"
+      </el-button>
+      <el-button
+        plain
         :disabled="!canRun"
         @click="sendPrompt('帮我创建一个一年级三班，班主任赵老师，教室 A103')"
       >
         新增班级
-      </button>
+      </el-button>
     </div>
 
-    <p v-if="runNotice" class="ai-chat-window__notice ai-chat-window__notice--error">{{ runNotice }}</p>
+    <el-alert
+      v-if="runNotice"
+      class="ai-chat-window__notice"
+      :title="runNotice"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
     <div class="ai-chat-window__body">
       <CopilotChat
         agent-id="default"
         :thread-id="threadId"
-        :attachments="attachmentConfig"
         :auto-scroll="'pin-to-bottom'"
         :on-error="handleChatError"
-      >
-        <template #input="inputProps">
-          <CopilotChatInput
-            :model-value="inputProps.modelValue"
-            :is-running="inputProps.isRunning"
-            :mode="inputProps.inputMode"
-            :tools-menu="inputProps.inputToolsMenu"
-            positioning="static"
-            :show-disclaimer="true"
-            :bottom-anchored="true"
-            @update:model-value="inputProps.onUpdateModelValue"
-            @submit-message="inputProps.onSubmitMessage"
-            @stop="inputProps.onStop?.()"
-            @add-file="inputProps.onAddFile"
-          >
-            <template #add-menu-button="{ disabled, labels }">
-              <button
-                type="button"
-                data-testid="copilot-chat-input-add"
-                :aria-label="labels.chatInputToolbarAddButtonLabel"
-                :disabled="disabled"
-                class="ai-chat-window__upload-button"
-                @click.stop="inputProps.onAddFile"
-              >
-                +
-              </button>
-            </template>
-          </CopilotChatInput>
-        </template>
-      </CopilotChat>
+        :attachments="attachmentConfig"
+      />
     </div>
   </div>
 
-  <button v-else class="ai-chat-launcher" @click="open = true">
+  <el-button v-else class="ai-chat-launcher" type="primary" circle @click="open = true">
     AI
-  </button>
+  </el-button>
 </template>
 
 <style scoped>
@@ -519,7 +516,7 @@ useFrontendTool({
   font-size: 0.82rem;
 }
 
-.ai-chat-window__header .button-secondary {
+.ai-chat-window__header .el-button {
   min-width: 70px;
   flex: 0 0 auto;
 }
@@ -533,27 +530,16 @@ useFrontendTool({
   padding: 0.65rem 1rem;
 }
 
-.ai-chat-window__quick .button-secondary {
+.ai-chat-window__quick .el-button {
   min-width: 0;
   min-height: 32px;
-  border-color: #cde3df;
-  background: #f0fdfa;
-  color: var(--accent-strong);
+  margin-left: 0;
   font-size: 0.86rem;
   padding: 0.35rem 0.55rem;
 }
 
-.ai-chat-window__quick .button-secondary:hover {
-  background: #ccfbf1;
-}
-
 .ai-chat-window__notice {
-  margin: 0;
-  border-bottom: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #9f1239;
-  font-size: 0.84rem;
-  padding: 0.55rem 1rem;
+  border-radius: 0;
 }
 
 .ai-chat-window__body {
@@ -570,25 +556,6 @@ useFrontendTool({
 .ai-chat-window :deep([data-copilotkit]) {
   overflow: hidden;
   border-radius: 0 0 8px 8px;
-}
-
-.ai-chat-window__upload-button {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  border: 1px solid var(--accent) !important;
-  border-radius: 12px;
-  background: #ecfdf5 !important;
-  color: var(--accent);
-  box-shadow: 0 1px 4px rgba(15, 118, 110, 0.18);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-}
-
-.ai-chat-window__upload-button:hover {
-  background: #d1fae5 !important;
-  color: var(--accent-strong);
 }
 
 .ai-chat-launcher {

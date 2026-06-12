@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { ElMessage, type UploadFile } from 'element-plus'
 import { useSchoolStore, type Gender, type Student } from '@/stores/school'
 
 const school = useSchoolStore()
 const editingId = ref('')
 const isFormOpen = ref(false)
 const keyword = ref('')
-const importInput = ref<HTMLInputElement | null>(null)
 const importMessage = ref('')
 const form = reactive({
   studentNo: '',
@@ -124,13 +124,8 @@ async function exportStudents() {
   XLSX.writeFile(workbook, `学生名单-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-function openImportFile() {
-  importInput.value?.click()
-}
-
-async function importStudents(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
+async function importStudents(uploadFile: UploadFile) {
+  const file = uploadFile.raw
   if (!file) return
 
   try {
@@ -173,10 +168,12 @@ async function importStudents(event: Event) {
     }
 
     importMessage.value = `导入完成：新增 ${created} 条，更新 ${updated} 条，跳过 ${skipped} 条。`
+    ElMessage.success(importMessage.value)
   } catch (error) {
     importMessage.value = `导入失败：${error instanceof Error ? error.message : '文件格式无法解析'}`
+    ElMessage.error(importMessage.value)
   } finally {
-    input.value = ''
+    return false
   }
 }
 </script>
@@ -190,11 +187,17 @@ async function importStudents(event: Event) {
         <p>维护学生基础信息，也可以直接把学生分配到班级。</p>
       </div>
       <div class="button-row">
-        <button @click="openCreateStudent">新增学生</button>
-        <button class="button-secondary" @click="openImportFile">导入 Excel</button>
-        <button class="button-secondary" @click="exportStudents">导出 Excel</button>
-        <button class="button-secondary" @click="school.resetSchoolData">重置数据</button>
-        <input ref="importInput" class="file-input" type="file" accept=".xlsx,.xls" @change="importStudents" />
+        <el-button type="primary" @click="openCreateStudent">新增学生</el-button>
+        <el-upload
+          accept=".xlsx,.xls"
+          :auto-upload="false"
+          :show-file-list="false"
+          :on-change="importStudents"
+        >
+          <el-button>导入 Excel</el-button>
+        </el-upload>
+        <el-button @click="exportStudents">导出 Excel</el-button>
+        <el-button @click="school.resetSchoolData">重置数据</el-button>
       </div>
     </header>
 
@@ -217,93 +220,71 @@ async function importStudents(event: Event) {
       <section class="panel table-panel">
         <div class="table-toolbar">
           <h2>学生列表</h2>
-          <input v-model="keyword" class="search-input" placeholder="搜索学号、姓名、电话、班级" />
+          <el-input v-model="keyword" clearable placeholder="搜索学号、姓名、电话、班级" style="max-width: 320px" />
         </div>
-        <p v-if="importMessage" class="inline-notice">{{ importMessage }}</p>
+        <el-alert v-if="importMessage" :title="importMessage" type="success" :closable="false" show-icon />
 
-        <div class="data-table">
-          <table>
-            <thead>
-              <tr>
-                <th>学号</th>
-                <th>姓名</th>
-                <th>性别</th>
-                <th>年龄</th>
-                <th>电话</th>
-                <th>班级</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="student in filteredStudents" :key="student.id">
-                <td>{{ student.studentNo }}</td>
-                <td>{{ student.name }}</td>
-                <td>{{ student.gender }}</td>
-                <td>{{ student.age }}</td>
-                <td>{{ student.phone }}</td>
-                <td>{{ school.getClassName(student.classId) }}</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="button-secondary" @click="editStudent(student)">编辑</button>
-                    <button class="button-danger" @click="deleteStudent(student.id)">删除</button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="filteredStudents.length === 0">
-                <td colspan="7" class="empty-cell">暂无学生</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <el-table :data="filteredStudents" border stripe empty-text="暂无学生">
+          <el-table-column prop="studentNo" label="学号" min-width="120" />
+          <el-table-column prop="name" label="姓名" min-width="100" />
+          <el-table-column prop="gender" label="性别" width="80" />
+          <el-table-column prop="age" label="年龄" width="80" />
+          <el-table-column prop="phone" label="电话" min-width="140" />
+          <el-table-column label="班级" min-width="130">
+            <template #default="{ row }">
+              <el-tag :type="row.classId ? 'success' : 'info'">
+                {{ school.getClassName(row.classId) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="160" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" @click="editStudent(row)">编辑</el-button>
+              <el-button size="small" type="danger" @click="deleteStudent(row.id)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </section>
     </div>
 
-    <div v-if="isFormOpen" class="modal-backdrop" role="presentation" @click.self="closeForm">
-      <section class="modal" role="dialog" aria-modal="true" :aria-label="formTitle">
-        <header class="modal__header">
-          <h2>{{ formTitle }}</h2>
-          <button type="button" class="button-secondary" @click="closeForm">关闭</button>
-        </header>
-
-        <form class="form-panel" @submit.prevent="submitStudent">
-          <label>
-            <span>学号</span>
-            <input v-model="form.studentNo" required placeholder="例如：2026004" />
-          </label>
-          <label>
-            <span>姓名</span>
-            <input v-model="form.name" required placeholder="学生姓名" />
-          </label>
-          <label>
-            <span>性别</span>
-            <select v-model="form.gender">
-              <option value="男">男</option>
-              <option value="女">女</option>
-            </select>
-          </label>
-          <label>
-            <span>年龄</span>
-            <input v-model.number="form.age" type="number" min="1" required />
-          </label>
-          <label>
-            <span>电话</span>
-            <input v-model="form.phone" required placeholder="联系电话" />
-          </label>
-          <label>
-            <span>班级</span>
-            <select v-model="form.classId">
-              <option value="">未分班</option>
-              <option v-for="schoolClass in school.classes" :key="schoolClass.id" :value="schoolClass.id">
-                {{ schoolClass.name }}
-              </option>
-            </select>
-          </label>
-          <div class="button-row modal__actions">
-            <button type="submit">{{ editingId ? '保存学生' : '新增学生' }}</button>
-            <button type="button" class="button-secondary" @click="closeForm">取消</button>
-          </div>
-        </form>
-      </section>
-    </div>
+    <el-dialog v-model="isFormOpen" :title="formTitle" width="520px" @closed="resetForm">
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="学号" required>
+          <el-input v-model="form.studentNo" placeholder="例如：2026004" />
+        </el-form-item>
+        <el-form-item label="姓名" required>
+          <el-input v-model="form.name" placeholder="学生姓名" />
+        </el-form-item>
+        <el-form-item label="性别" required>
+          <el-radio-group v-model="form.gender">
+            <el-radio-button label="男" value="男" />
+            <el-radio-button label="女" value="女" />
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="年龄" required>
+          <el-input-number v-model="form.age" :min="1" :max="120" />
+        </el-form-item>
+        <el-form-item label="电话" required>
+          <el-input v-model="form.phone" placeholder="联系电话" />
+        </el-form-item>
+        <el-form-item label="班级">
+          <el-select v-model="form.classId" placeholder="未分班" clearable style="width: 100%">
+            <el-option label="未分班" value="" />
+            <el-option
+              v-for="schoolClass in school.classes"
+              :key="schoolClass.id"
+              :label="schoolClass.name"
+              :value="schoolClass.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="closeForm">取消</el-button>
+        <el-button type="primary" @click="submitStudent">
+          {{ editingId ? '保存学生' : '新增学生' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
